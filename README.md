@@ -10,6 +10,9 @@ A real-time posture detection system using computer vision to help maintain good
 - Audio alerts for prolonged bad posture
 - Timer display for bad posture duration
 
+## Live testing
+You can just use it. It's live in https://bad-posture.onrender.com I promise it's not spying or recording anything :) 
+
 ## Requirements
 
 - Python 3.8 or higher
