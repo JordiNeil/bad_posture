@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             await startWebcam();
-            setInterval(sendFrame, 1000); // Send frame every second
+            setInterval(sendFrame, 500); // Send frame every second
             button.textContent = 'Detection Active';
         } catch (error) {
             console.error('Error starting detection:', error);
