@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posture Detection (Client-Side)</title>
+    <meta name="description" content="Real-time posture detection with client-side MediaPipe processing">
+    <meta property="og:title" content="Posture Detection (Client-Side)">
+    <meta property="og:description" content="Monitor and improve your sitting posture in real-time with faster client-side processing">
+    <meta property="og:image" content="assets/thumbnail.webp">
+    <link rel="icon" type="image/png" href="assets/thumbnail.webp">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- MediaPipe JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    <div class="container">
+        <header>
+            <h1>Posture Detection</h1>
+            <p class="subtitle">Monitor and improve your sitting posture in real-time</p>
+        </header>
+
+        <main>
+            <div class="layout-container">
+                <div class="controls-sidebar">
+                    <div class="config-container">
+                        <h2>Settings</h2>
+                        <div class="config-group">
+                            <label>
+                                Posture Threshold:
+                                <div class="angle-inputs">
+                                    <input type="number" id="maxGoodAngle" value="25" min="5" max="40">
+                                    degrees forward
+                                </div>
+                                <small>0° = perfect posture. Beyond this threshold = bad posture</small>
+                            </label>
+                        </div>
+                        <div class="config-group">
+                            <label>
+                                Alert Interval:
+                                <div class="time-input">
+                                    <input type="number" id="alertInterval" value="10" min="1">
+                                    seconds
+                                </div>
+                            </label>
+                        </div>
+                        <div class="button-group">
+                            <button id="saveConfig" class="config-button">Save Settings</button>
+                            <button id="resetConfig" class="config-button secondary">Reset to Default</button>
+                        </div>
+                    </div>
+
+                    <div class="status-container">
+                        <div id="status" class="status-message">Status: Waiting...</div>
+                        <p id="angle" class="metric">Head Position: --</p>
+                        <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
+                        <button id="toggleAlert" class="alert-button">
+                            <span class="alert-icon">🔔</span> Alerts Enabled
+                        </button>
+                    </div>
+                </div>
+
+                <div class="video-section">
+                    <div class="video-container">
+                        <video id="video" autoplay></video>
+                        <canvas id="canvas"></canvas>
+                        <canvas id="pose-canvas"></canvas>
+                        <div class="camera-overlay">
+                            <span>Camera not started</span>
+                        </div>
+                    </div>
+                    <button id="startBtn" class="start-button">Start Detection</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Created by <a href="https://github.com/JordiNeil" target="_blank">Jordi Sanchez (@JordiNeil)</a></p>
+            <p>View the <a href="https://github.com/JordiNeil/bad_posture" target="_blank">source code</a></p>
+        </footer>
+    </div>
+    <script src="app_new.js"></script>
+</body>
+</html> 

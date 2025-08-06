@@ -124,6 +124,11 @@ def calculate_neck_angles(landmarks):
 # Mount the API routes under /api
 app.mount("/api", api_app)
 
+# Add route for new client-side app
+@app.get("/front_app")
+async def serve_new_app():
+    return FileResponse(os.path.join(frontend_dir, "index_new.html"))
+
 # Verify frontend directory exists
 if not os.path.exists(frontend_dir):
     raise RuntimeError(f"Frontend directory not found at: {frontend_dir}")
