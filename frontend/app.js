@@ -68,17 +68,47 @@ async function sendFrame() {
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
+    // Log image size information
+    console.log('📸 Frame Info:', {
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        totalPixels: canvas.width * canvas.height,
+        aspectRatio: (canvas.width / canvas.height).toFixed(2)
+    });
+    
     const frame = canvas.toDataURL('image/jpeg');
     const blob = await (await fetch(frame)).blob();
+    
+    // Log image file size
+    console.log('💾 Image Data:', {
+        blobSize: blob.size,
+        blobSizeKB: (blob.size / 1024).toFixed(2),
+        blobType: blob.type,
+        dataURLLength: frame.length,
+        dataURLSizeKB: (frame.length / 1024).toFixed(2)
+    });
+    
     const formData = new FormData();
     formData.append('file', blob, 'frame.jpg');
     
     try {
+        const startTime = performance.now();
         const response = await fetch('/api/process-image', {
             method: 'POST',
             body: formData
         });
+        const endTime = performance.now();
         const data = await response.json();
+        
+        // Log processing timing
+        console.log('⚡ Processing Time:', {
+            requestDuration: (endTime - startTime).toFixed(2) + 'ms',
+            responseSize: JSON.stringify(data).length,
+            landmarksCount: data.landmarks ? data.landmarks.length : 0
+        });
+        
         updateUI(data);
     } catch (error) {
         console.error('Error sending frame:', error);
@@ -448,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             await startWebcam();
-            setInterval(sendFrame, 500); // Send frame every second
+            setInterval(sendFrame, 200); // Send frame every second
             button.textContent = 'Detection Active';
         } catch (error) {
             console.error('Error starting detection:', error);

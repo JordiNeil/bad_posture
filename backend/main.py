@@ -73,7 +73,7 @@ async def process_image(file: UploadFile = File(...)):
 
 # Initialize MediaPipe Pose
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose()
+pose = mp_pose.Pose(model_complexity=0)
 mp_draw = mp.solutions.drawing_utils
 
 def calculate_neck_angles(landmarks):
