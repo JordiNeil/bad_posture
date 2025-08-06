@@ -334,7 +334,7 @@ function getInitialConfig() {
     
     // Use stored config or default values
     config = storedConfig || {
-        maxGoodAngle: 15,      // Good posture threshold
+        maxGoodAngle: 25,      // Good posture threshold
         alertInterval: 10000   // Alert interval in milliseconds
     };
     
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             await startWebcam();
-            setInterval(sendFrame, 200); // Send frame every second
+            setInterval(sendFrame, 200); // Send frame 200miliseconds
             button.textContent = 'Detection Active';
         } catch (error) {
             console.error('Error starting detection:', error);
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Reset to default configuration values
             config = {
-                maxGoodAngle: 15,      // Good posture threshold
+                maxGoodAngle: 25,      // Good posture threshold
                 alertInterval: 10000   // Alert interval in milliseconds
             };
             
