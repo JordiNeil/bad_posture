@@ -64,9 +64,15 @@
                         <div id="status" class="status-message">Status: Waiting...</div>
                         <p id="angle" class="metric">Head Position: --</p>
                         <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
-                        <button id="toggleAlert" class="alert-button">
-                            <span class="alert-icon">🔔</span> Alerts Enabled
-                        </button>
+                        <p id="dailyStats" class="metric daily-stats">Today: 0s (0 sessions)</p>
+                        <div class="button-group">
+                            <button id="toggleAlert" class="alert-button">
+                                <span class="alert-icon">🔔</span> Alerts Enabled
+                            </button>
+                            <button id="showHistory" class="history-button">
+                                📚 View History
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -79,7 +85,10 @@
                             <span>Camera not started</span>
                         </div>
                     </div>
-                    <button id="startBtn" class="start-button">Start Detection</button>
+                    <div class="detection-controls">
+                        <button id="startBtn" class="start-button">Start Detection</button>
+                        <button id="stopBtn" class="stop-button hidden">Stop Detection</button>
+                    </div>
                 </div>
             </div>
         </main>
@@ -89,6 +98,23 @@
             <p>View the <a href="https://github.com/JordiNeil/bad_posture" target="_blank">source code</a></p>
         </footer>
     </div>
+
+    <!-- Historical Data Modal -->
+    <div id="historyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📚 Posture History</h2>
+                <button id="closeModal" class="close-button">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="historySummary" class="history-summary">
+                    <div class="loading">Loading historical data...</div>
+                </div>
+                <div id="historyDetails" class="history-details"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="app_new.js"></script>
 </body>
 </html> 

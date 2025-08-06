@@ -490,4 +490,208 @@ footer a:hover {
 
 .alert-icon {
     font-size: 1.2rem;
+}
+
+/* Daily stats styling */
+.daily-stats {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    color: #4CAF50;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* History button styling */
+.history-button {
+    background: linear-gradient(145deg, #6366f1, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.history-button:hover {
+    background: linear-gradient(145deg, #4f46e5, #3730a3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Modal styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #1A1F36;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    border: 1px solid #2A2F47;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s ease;
+}
+
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+}
+
+.history-summary {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6366f1;
+    display: block;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #B4BCD0;
+    margin-top: 0.25rem;
+}
+
+.history-details {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.history-day {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-day:last-child {
+    border-bottom: none;
+}
+
+.day-date {
+    font-weight: 500;
+    color: #E2E8F0;
+}
+
+.day-stats {
+    color: #B4BCD0;
+    font-size: 0.9rem;
+}
+
+.loading {
+    text-align: center;
+    color: #B4BCD0;
+    font-style: italic;
+}
+
+/* Detection controls styling */
+.detection-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.stop-button {
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stop-button:hover {
+    background: linear-gradient(145deg, #dc2626, #b91c1c);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.stop-button:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 } 

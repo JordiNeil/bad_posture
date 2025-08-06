@@ -41,6 +41,324 @@ function saveConfigToStorage() {
     }
 }
 
+function loadDailyStats() {
+    const today = new Date().toDateString();
+    const allHistoricalStats = localStorage.getItem('postureHistoricalStats');
+    let historicalData = {};
+    
+    // Load all historical data
+    if (allHistoricalStats) {
+        try {
+            historicalData = JSON.parse(allHistoricalStats);
+            console.log('📚 Loaded historical stats for', Object.keys(historicalData).length, 'days');
+        } catch (e) {
+            console.error('Error loading historical stats:', e);
+            historicalData = {};
+        }
+    }
+    
+    // Check if we have stats for today
+    if (historicalData[today]) {
+        dailyPostureStats = historicalData[today];
+        
+        // Migrate old data structure if needed
+        if (!dailyPostureStats.totalActiveTime) {
+            dailyPostureStats.totalActiveTime = 0;
+        }
+        if (!dailyPostureStats.lastActiveTimestamp) {
+            dailyPostureStats.lastActiveTimestamp = null;
+        }
+        
+        console.log('📊 Loaded today\'s stats:', dailyPostureStats);
+    } else {
+        console.log('📅 Creating new stats for today');
+        dailyPostureStats = {
+            date: today,
+            totalBadPostureTime: 0,
+            totalActiveTime: 0,
+            sessions: [],
+            lastActiveTimestamp: null
+        };
+        saveDailyStats();
+    }
+}
+
+function saveDailyStats() {
+    try {
+        // Load existing historical data
+        const allHistoricalStats = localStorage.getItem('postureHistoricalStats');
+        let historicalData = {};
+        
+        if (allHistoricalStats) {
+            try {
+                historicalData = JSON.parse(allHistoricalStats);
+            } catch (e) {
+                console.error('Error parsing historical data:', e);
+                historicalData = {};
+            }
+        }
+        
+        // Update today's data in the historical record
+        historicalData[dailyPostureStats.date] = dailyPostureStats;
+        
+        // Save updated historical data
+        localStorage.setItem('postureHistoricalStats', JSON.stringify(historicalData));
+        
+        const badPosturePercentage = dailyPostureStats.totalActiveTime > 0 
+            ? (dailyPostureStats.totalBadPostureTime / dailyPostureStats.totalActiveTime * 100).toFixed(1)
+            : 0;
+        
+        console.log('📊 Daily stats saved:', {
+            date: dailyPostureStats.date,
+            badPostureTime: formatTime(dailyPostureStats.totalBadPostureTime),
+            totalActiveTime: formatTime(dailyPostureStats.totalActiveTime),
+            badPosturePercentage: badPosturePercentage + '%',
+            sessions: dailyPostureStats.sessions.length,
+            totalDaysTracked: Object.keys(historicalData).length
+        });
+    } catch (e) {
+        console.error('Error saving daily stats:', e);
+    }
+}
+
+function updateDailyStats(badPostureDuration) {
+    // Only record sessions with meaningful duration (more than 1 second)
+    if (badPostureDuration > 1000) {
+        dailyPostureStats.totalBadPostureTime += badPostureDuration;
+        dailyPostureStats.sessions.push({
+            timestamp: new Date().toISOString(),
+            duration: badPostureDuration
+        });
+        saveDailyStats();
+        updateDailyStatsDisplay();
+        console.log('📊 Session recorded:', formatTime(badPostureDuration));
+    } else {
+        console.log('📊 Session too short, not recorded:', formatTime(badPostureDuration));
+    }
+}
+
+function updateActiveTime() {
+    // Only track active time when detection is running
+    if (!isDetectionActive) {
+        return;
+    }
+    
+    const now = Date.now();
+    
+    // If this is the first update or resuming after a break
+    if (!dailyPostureStats.lastActiveTimestamp) {
+        dailyPostureStats.lastActiveTimestamp = now;
+        return;
+    }
+    
+    // Calculate time since last update
+    const timeDiff = now - dailyPostureStats.lastActiveTimestamp;
+    
+    // Only add time if it's reasonable (less than 5 seconds to handle normal processing gaps)
+    // This prevents adding huge chunks if the app was paused
+    if (timeDiff > 0 && timeDiff < 5000) {
+        dailyPostureStats.totalActiveTime += timeDiff;
+        
+        // Debug logging every 30 seconds
+        if (Math.floor(dailyPostureStats.totalActiveTime / 30000) !== Math.floor((dailyPostureStats.totalActiveTime - timeDiff) / 30000)) {
+            console.log('🕐 Active time update:', {
+                totalActive: formatTime(dailyPostureStats.totalActiveTime),
+                totalBad: formatTime(dailyPostureStats.totalBadPostureTime),
+                percentage: dailyPostureStats.totalActiveTime > 0 
+                    ? (dailyPostureStats.totalBadPostureTime / dailyPostureStats.totalActiveTime * 100).toFixed(1) + '%'
+                    : '0%'
+            });
+        }
+    } else if (timeDiff >= 5000) {
+        console.log('⏸️ Gap detected in tracking:', formatTime(timeDiff), '- not adding to active time');
+    }
+    
+    dailyPostureStats.lastActiveTimestamp = now;
+}
+
+function formatTime(milliseconds) {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    } else {
+        return `${seconds}s`;
+    }
+}
+
+function updateDailyStatsDisplay() {
+    const dailyStatsElement = document.getElementById('dailyStats');
+    if (dailyStatsElement) {
+        const badPostureTime = formatTime(dailyPostureStats.totalBadPostureTime);
+        const totalActiveTime = formatTime(dailyPostureStats.totalActiveTime);
+        const sessionsCount = dailyPostureStats.sessions.length;
+        
+        // Calculate percentage with safety checks
+        let percentage = 0;
+        if (dailyPostureStats.totalActiveTime > 0) {
+            percentage = (dailyPostureStats.totalBadPostureTime / dailyPostureStats.totalActiveTime * 100);
+            
+            // Cap percentage at 100% if there's somehow an error
+            if (percentage > 100) {
+                console.error('⚠️ Percentage over 100%:', {
+                    badPosture: dailyPostureStats.totalBadPostureTime,
+                    totalActive: dailyPostureStats.totalActiveTime,
+                    calculated: percentage
+                });
+                percentage = 100;
+            }
+            
+            percentage = percentage.toFixed(1);
+        }
+        
+        // Get total days tracked for context
+        const allHistoricalStats = localStorage.getItem('postureHistoricalStats');
+        let totalDays = 0;
+        if (allHistoricalStats) {
+            try {
+                const historicalData = JSON.parse(allHistoricalStats);
+                totalDays = Object.keys(historicalData).length;
+            } catch (e) {
+                console.error('Error reading historical data for display:', e);
+            }
+        }
+        
+        dailyStatsElement.textContent = `Today: ${badPostureTime} (${percentage}%) of ${totalActiveTime} | ${sessionsCount} sessions`;
+    }
+}
+
+function getHistoricalStats() {
+    const allHistoricalStats = localStorage.getItem('postureHistoricalStats');
+    if (allHistoricalStats) {
+        try {
+            return JSON.parse(allHistoricalStats);
+        } catch (e) {
+            console.error('Error loading historical stats:', e);
+            return {};
+        }
+    }
+    return {};
+}
+
+function printHistoricalSummary() {
+    const historicalData = getHistoricalStats();
+    const dates = Object.keys(historicalData).sort();
+    
+    console.log('📚 Historical Posture Data Summary:');
+    console.log('=====================================');
+    
+    let totalBadPostureTime = 0;
+    let totalActiveTime = 0;
+    let totalSessions = 0;
+    
+    dates.forEach(date => {
+        const dayData = historicalData[date];
+        const badPostureTime = formatTime(dayData.totalBadPostureTime);
+        const activeTime = formatTime(dayData.totalActiveTime || 0);
+        const percentage = dayData.totalActiveTime > 0 
+            ? (dayData.totalBadPostureTime / dayData.totalActiveTime * 100).toFixed(1)
+            : 0;
+        
+        totalBadPostureTime += dayData.totalBadPostureTime;
+        totalActiveTime += (dayData.totalActiveTime || 0);
+        totalSessions += dayData.sessions.length;
+        
+        console.log(`${date}: ${badPostureTime} (${percentage}%) of ${activeTime} • ${dayData.sessions.length} sessions`);
+    });
+    
+    const overallPercentage = totalActiveTime > 0 
+        ? (totalBadPostureTime / totalActiveTime * 100).toFixed(1)
+        : 0;
+    
+    console.log('=====================================');
+    console.log(`Total days tracked: ${dates.length}`);
+    console.log(`Total bad posture time: ${formatTime(totalBadPostureTime)}`);
+    console.log(`Total active time: ${formatTime(totalActiveTime)}`);
+    console.log(`Overall bad posture percentage: ${overallPercentage}%`);
+    console.log(`Total sessions: ${totalSessions}`);
+    console.log('=====================================');
+    
+    return {
+        totalDays: dates.length,
+        totalBadPostureTime,
+        totalActiveTime,
+        totalSessions,
+        overallPercentage,
+        dailyData: historicalData
+    };
+}
+
+function showHistoryModal() {
+    const modal = document.getElementById('historyModal');
+    const summarySectionEl = document.getElementById('historySummary');
+    const detailsSectionEl = document.getElementById('historyDetails');
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    // Calculate and display summary
+    const summary = printHistoricalSummary();
+    const historicalData = getHistoricalStats();
+    const dates = Object.keys(historicalData).sort().reverse(); // Most recent first
+    
+    // Create summary HTML
+    summarySectionEl.innerHTML = `
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span class="summary-value">${summary.totalDays}</span>
+                <div class="summary-label">Days Tracked</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-value">${formatTime(summary.totalBadPostureTime)}</span>
+                <div class="summary-label">Total Bad Posture</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-value">${formatTime(summary.totalActiveTime)}</span>
+                <div class="summary-label">Total Active Time</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-value">${summary.overallPercentage}%</span>
+                <div class="summary-label">Bad Posture %</div>
+            </div>
+        </div>
+    `;
+    
+    // Create details HTML
+    let detailsHTML = '';
+    if (dates.length === 0) {
+        detailsHTML = '<div class="loading">No historical data available yet.</div>';
+    } else {
+        detailsHTML = dates.map(date => {
+            const dayData = historicalData[date];
+            const badPostureTime = formatTime(dayData.totalBadPostureTime);
+            const totalActiveTime = formatTime(dayData.totalActiveTime || 0);
+            const percentage = dayData.totalActiveTime > 0 
+                ? (dayData.totalBadPostureTime / dayData.totalActiveTime * 100).toFixed(1)
+                : 0;
+            const isToday = date === new Date().toDateString();
+            
+            return `
+                <div class="history-day">
+                    <div class="day-date">${isToday ? '📅 ' : ''}${date}${isToday ? ' (Today)' : ''}</div>
+                    <div class="day-stats">${badPostureTime} (${percentage}%) of ${totalActiveTime} • ${dayData.sessions.length} sessions</div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    detailsSectionEl.innerHTML = detailsHTML;
+}
+
+function hideHistoryModal() {
+    const modal = document.getElementById('historyModal');
+    modal.classList.add('hidden');
+}
+
 let badPostureStartTime = null;
 let lastAlertTime = null;
 const ALERT_THRESHOLD = 10000; // 10 seconds in milliseconds
@@ -49,6 +367,19 @@ let alertsEnabled = true;
 let isProcessing = false;
 let frameCount = 0;
 let lastFrameTime = Date.now();
+
+// Daily posture tracking
+let dailyPostureStats = {
+    date: null,
+    totalBadPostureTime: 0, // in milliseconds
+    totalActiveTime: 0, // total time the app was actively monitoring
+    sessions: [],
+    lastActiveTimestamp: null
+};
+let currentSessionStartTime = null;
+let appStartTime = null;
+let isDetectionActive = false;
+let currentStream = null;
 
 // MediaPipe setup
 async function initializeMediaPipe() {
@@ -203,7 +534,7 @@ async function startWebcam() {
         console.log('📹 Starting webcam...');
         
         // Request webcam with specific constraints for better performance
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+        currentStream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 640 },
                 height: { ideal: 480 },
@@ -211,7 +542,7 @@ async function startWebcam() {
             } 
         });
         
-        video.srcObject = stream;
+        video.srcObject = currentStream;
         
         video.onloadedmetadata = async () => {
             console.log('📹 Video metadata loaded:', {
@@ -225,7 +556,7 @@ async function startWebcam() {
             // Initialize camera for MediaPipe
             camera = new Camera(video, {
                 onFrame: async () => {
-                    if (pose) {
+                    if (pose && isDetectionActive) {
                         await pose.send({ image: video });
                     }
                 },
@@ -234,6 +565,7 @@ async function startWebcam() {
             });
             
             await camera.start();
+            isDetectionActive = true;
             console.log('📹 Camera started successfully');
         };
     } catch (error) {
@@ -242,11 +574,81 @@ async function startWebcam() {
     }
 }
 
+function stopDetection() {
+    console.log('🛑 Stopping detection...');
+    
+    // Stop active time tracking
+    isDetectionActive = false;
+    
+    // Close any ongoing bad posture session
+    if (badPostureStartTime && currentSessionStartTime) {
+        const sessionDuration = Date.now() - currentSessionStartTime;
+        
+        // Ensure bad posture time never exceeds total active time
+        if (dailyPostureStats.totalBadPostureTime + sessionDuration > dailyPostureStats.totalActiveTime) {
+            console.warn('⚠️ Bad posture session would exceed total active time, adjusting...');
+            const adjustedDuration = Math.max(0, dailyPostureStats.totalActiveTime - dailyPostureStats.totalBadPostureTime);
+            console.log('📊 Adjusted session duration:', formatTime(adjustedDuration), 'instead of', formatTime(sessionDuration));
+            updateDailyStats(adjustedDuration);
+        } else {
+            updateDailyStats(sessionDuration);
+            console.log('📊 Final bad posture session ended:', formatTime(sessionDuration));
+        }
+    }
+    
+    // Reset tracking variables
+    badPostureStartTime = null;
+    currentSessionStartTime = null;
+    dailyPostureStats.lastActiveTimestamp = null;
+    
+    // Stop camera
+    if (camera) {
+        camera.stop();
+        camera = null;
+    }
+    
+    // Stop video stream
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
+    
+    // Reset video element
+    const video = document.getElementById('video');
+    video.srcObject = null;
+    
+    // Show camera overlay
+    const cameraOverlay = document.querySelector('.camera-overlay');
+    cameraOverlay.classList.remove('hidden');
+    cameraOverlay.textContent = 'Camera stopped';
+    
+    // Clear pose canvas
+    const canvas = document.getElementById('pose-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset UI status
+    const statusElement = document.getElementById('status');
+    const timerElement = document.getElementById('timer');
+    statusElement.textContent = 'Status: Detection stopped';
+    statusElement.className = 'status-message';
+    timerElement.classList.add('hidden');
+    
+    // Reset video container shadow
+    const videoContainer = document.querySelector('.video-container');
+    videoContainer.className = 'video-container';
+    
+    console.log('🛑 Detection stopped successfully');
+}
+
 function updateUI(data) {
     const statusElement = document.getElementById('status');
     const angleElement = document.getElementById('angle');
     const timerElement = document.getElementById('timer');
     const videoContainer = document.querySelector('.video-container');
+    
+    // Update active time tracking
+    updateActiveTime();
     
     if (data.error) {
         statusElement.textContent = `Status: ${data.error}`;
@@ -358,6 +760,7 @@ function updateUI(data) {
     if (!isGood) {
         if (!badPostureStartTime) {
             badPostureStartTime = Date.now();
+            currentSessionStartTime = Date.now();
         }
         
         const duration = Math.floor((Date.now() - badPostureStartTime) / 1000);
@@ -371,7 +774,24 @@ function updateUI(data) {
             }
         }
     } else {
+        // When transitioning from bad to good posture, record the session
+        if (badPostureStartTime && currentSessionStartTime) {
+            const sessionDuration = Date.now() - currentSessionStartTime;
+            
+            // Ensure bad posture time never exceeds total active time
+            if (dailyPostureStats.totalBadPostureTime + sessionDuration > dailyPostureStats.totalActiveTime) {
+                console.warn('⚠️ Bad posture session would exceed total active time, adjusting...');
+                const adjustedDuration = Math.max(0, dailyPostureStats.totalActiveTime - dailyPostureStats.totalBadPostureTime);
+                console.log('📊 Adjusted session duration:', formatTime(adjustedDuration), 'instead of', formatTime(sessionDuration));
+                updateDailyStats(adjustedDuration);
+            } else {
+                updateDailyStats(sessionDuration);
+                console.log('📊 Bad posture session ended:', formatTime(sessionDuration));
+            }
+        }
+        
         badPostureStartTime = null;
+        currentSessionStartTime = null;
         timerElement.classList.add('hidden');
     }
 }
@@ -501,6 +921,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     getInitialConfig();
     updateConfigInputs();
     
+    // Load daily posture stats
+    loadDailyStats();
+    updateDailyStatsDisplay();
+    
     // Initialize MediaPipe
     const mediaPipeReady = await initializeMediaPipe();
     if (!mediaPipeReady) {
@@ -583,19 +1007,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Start button event listener
     document.getElementById('startBtn').addEventListener('click', async () => {
-        const button = document.getElementById('startBtn');
-        button.disabled = true;
-        button.textContent = 'Starting...';
+        const startButton = document.getElementById('startBtn');
+        const stopButton = document.getElementById('stopBtn');
+        
+        startButton.disabled = true;
+        startButton.textContent = 'Starting...';
         
         try {
             await startWebcam();
-            button.textContent = 'Detection Active';
+            startButton.classList.add('hidden');
+            stopButton.classList.remove('hidden');
             console.log('✅ Client-side processing started successfully');
         } catch (error) {
             console.error('❌ Error starting detection:', error);
-            button.disabled = false;
-            button.textContent = 'Start Detection';
+            startButton.disabled = false;
+            startButton.textContent = 'Start Detection';
         }
+    });
+
+    // Stop button event listener
+    document.getElementById('stopBtn').addEventListener('click', () => {
+        const startButton = document.getElementById('startBtn');
+        const stopButton = document.getElementById('stopBtn');
+        
+        stopDetection();
+        
+        // Reset button states
+        stopButton.classList.add('hidden');
+        startButton.classList.remove('hidden');
+        startButton.disabled = false;
+        startButton.textContent = 'Start Detection';
+        
+        console.log('✅ Detection stopped by user');
     });
 
     // Reset configuration event listener
@@ -638,6 +1081,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             toggleAlertBtn.innerHTML = '<span class="alert-icon">🔕</span> Alerts Disabled';
             toggleAlertBtn.classList.add('disabled');
+        }
+    });
+
+    // Show history modal event listener
+    document.getElementById('showHistory').addEventListener('click', () => {
+        showHistoryModal();
+    });
+
+    // Close modal event listeners
+    document.getElementById('closeModal').addEventListener('click', () => {
+        hideHistoryModal();
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('historyModal').addEventListener('click', (e) => {
+        if (e.target.id === 'historyModal') {
+            hideHistoryModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hideHistoryModal();
         }
     });
 });
