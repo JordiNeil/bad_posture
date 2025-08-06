@@ -29,22 +29,12 @@
                         <h2>Settings</h2>
                         <div class="config-group">
                             <label>
-                                Right Side Angle Range:
+                                Posture Threshold:
                                 <div class="angle-inputs">
-                                    <input type="number" id="rightMinAngle" value="-100" max="0"> -
-                                    <input type="number" id="rightMaxAngle" value="-65" max="0">
-                                    degrees
+                                    <input type="number" id="maxGoodAngle" value="15" min="5" max="40">
+                                    degrees forward
                                 </div>
-                            </label>
-                        </div>
-                        <div class="config-group">
-                            <label>
-                                Left Side Angle Range:
-                                <div class="angle-inputs">
-                                    <input type="number" id="leftMinAngle" value="65" min="0"> -
-                                    <input type="number" id="leftMaxAngle" value="100" min="0">
-                                    degrees
-                                </div>
+                                <small>0° = perfect posture. Beyond this threshold = bad posture</small>
                             </label>
                         </div>
                         <div class="config-group">
@@ -64,7 +54,7 @@
 
                     <div class="status-container">
                         <div id="status" class="status-message">Status: Waiting...</div>
-                        <p id="angle" class="metric">Neck Angle: --</p>
+                        <p id="angle" class="metric">Head Position: --</p>
                         <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
                         <button id="toggleAlert" class="alert-button">
                             <span class="alert-icon">🔔</span> Alerts Enabled

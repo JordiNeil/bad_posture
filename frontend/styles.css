@@ -152,9 +152,34 @@ video, canvas {
 .metric {
     font-size: 1.2rem;
     margin: 0.5rem 0;
-    padding: 0.5rem;
-    border-radius: 4px;
-    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    border-left: 4px solid var(--primary-color);
+    font-weight: 500;
+}
+
+.metric.angle-display {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border-left: 4px solid #28a745;
+}
+
+.status-message.excellent-posture {
+    color: #155724;
+    background: linear-gradient(145deg, #d4edda, #c3e6cb);
+    border-left: 4px solid #28a745;
+}
+
+.status-message.fair-posture {
+    color: #856404;
+    background: linear-gradient(145deg, #fff3cd, #ffeaa7);
+    border-left: 4px solid #ffc107;
+}
+
+.status-message.poor-posture {
+    color: #721c24;
+    background: linear-gradient(145deg, #f8d7da, #f5c6cb);
+    border-left: 4px solid #dc3545;
 }
 
 .start-button {
@@ -279,19 +304,35 @@ footer a:hover {
     font-weight: 500;
 }
 
+.config-group small {
+    display: block;
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
 .angle-inputs, .time-input {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 0.5rem;
+    font-weight: 500;
 }
 
-.config-container input {
-    width: 80px;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+.config-container input[type="number"] {
+    width: 70px;
+    padding: 0.6rem;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
     font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.config-container input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .config-button {

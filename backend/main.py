@@ -33,32 +33,7 @@ else:
 # Create a sub-application for API routes
 api_app = FastAPI()
 
-# Add this class for request validation
-class ConfigUpdate(BaseModel):
-    right_min_angle: int
-    right_max_angle: int
-    left_min_angle: int
-    left_max_angle: int
-
-class PostureConfig:
-    def __init__(self):
-        # Right side range (negative angles)
-        self.right_min_angle = -80
-        self.right_max_angle = -63
-        # Left side range (positive angles)
-        self.left_min_angle = 80
-        self.left_max_angle = 115
-
-config = PostureConfig()
-
-@api_app.get("/config")
-async def get_config():
-    return {
-        "right_min_angle": config.right_min_angle,
-        "right_max_angle": config.right_max_angle,
-        "left_min_angle": config.left_min_angle,
-        "left_max_angle": config.left_max_angle
-    }
+# Config endpoints removed - posture evaluation now handled by frontend
 
 @api_app.post("/process-image")
 async def process_image(file: UploadFile = File(...)):
@@ -74,11 +49,8 @@ async def process_image(file: UploadFile = File(...)):
     
     if results.pose_landmarks:
         try:
-            # Calculate neck angles
+            # Calculate neck angles only
             angles = calculate_neck_angles(results.pose_landmarks.landmark)
-            
-            # Check posture
-            posture_result = check_posture(angles)
             
             # Convert landmarks to list for JSON serialization
             landmarks = []
@@ -91,9 +63,7 @@ async def process_image(file: UploadFile = File(...)):
                 })
             
             return {
-                "angles": posture_result["angles"],
-                "status": posture_result["status"],
-                "is_good": posture_result["is_good"],
+                "angles": angles,
                 "landmarks": landmarks
             }
         except ValueError as e:
@@ -107,23 +77,30 @@ pose = mp_pose.Pose()
 mp_draw = mp.solutions.drawing_utils
 
 def calculate_neck_angles(landmarks):
-    # Calculate right side angle
+    # Calculate head forward angles for both sides
     right_shoulder = (landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                      landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y)
     right_ear = (landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].x,
                  landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y)
     
-    # Calculate left side angle
     left_shoulder = (landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                     landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y)
     left_ear = (landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x,
                 landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y)
     
-    # Calculate angles for both sides
-    right_angle = degrees(atan2(right_ear[1] - right_shoulder[1], 
-                               right_ear[0] - right_shoulder[0]))
-    left_angle = degrees(atan2(left_ear[1] - left_shoulder[1], 
-                              left_ear[0] - left_shoulder[0])) * -1
+    # Calculate head forward angles from vertical
+    # Positive angle = head forward (bad posture)
+    # 0° = head directly above shoulders (perfect posture)
+    
+    # For right side: measure how far forward the ear is from shoulder
+    right_dx = right_ear[0] - right_shoulder[0]  # horizontal distance
+    right_dy = right_shoulder[1] - right_ear[1]  # vertical distance (inverted y-axis)
+    right_angle = degrees(atan2(abs(right_dx), max(right_dy, 0.001)))  # Prevent division by zero
+    
+    # For left side: same calculation
+    left_dx = left_ear[0] - left_shoulder[0]  # horizontal distance  
+    left_dy = left_shoulder[1] - left_ear[1]  # vertical distance (inverted y-axis)
+    left_angle = degrees(atan2(abs(left_dx), max(left_dy, 0.001)))  # Prevent division by zero
     
     # Calculate visibility scores
     right_visibility = min(landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].visibility,
@@ -133,7 +110,7 @@ def calculate_neck_angles(landmarks):
     
     angles = {}
     if right_visibility > 0.5:
-        angles['right'] = right_angle  # No need to multiply by -1 anymore
+        angles['right'] = right_angle
     if left_visibility > 0.5:
         angles['left'] = left_angle
     
@@ -142,40 +119,7 @@ def calculate_neck_angles(landmarks):
     
     return angles
 
-def check_posture(angles):
-    is_good = True
-    bad_angles = []
-    
-    if 'right' in angles:
-        right_angle = angles['right']
-        if not (config.right_min_angle <= right_angle <= config.right_max_angle):
-            is_good = False
-            bad_angles.append('right')
-    
-    if 'left' in angles:
-        left_angle = angles['left']
-        if not (config.left_min_angle <= left_angle <= config.left_max_angle):
-            is_good = False
-            bad_angles.append('left')
-    
-    if is_good:
-        return {
-            "status": "Good Posture",
-            "is_good": True,
-            "angles": angles
-        }
-    else:
-        # Customize message based on number of bad angles
-        if len(bad_angles) > 1:
-            status = "Bad Posture! Please sit straight and fix your back posture"
-        else:
-            status = "Bad Posture! Please fix your neck angle"
-        
-        return {
-            "status": status,
-            "is_good": False,
-            "angles": angles
-        }
+# check_posture function removed - posture evaluation now handled by frontend
 
 # Mount the API routes under /api
 app.mount("/api", api_app)

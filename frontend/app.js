@@ -1,4 +1,8 @@
-let config = loadConfig();
+// Test log to verify script is loading
+console.log('🚀 PostureApp: JavaScript file loaded successfully!');
+console.log('🔧 Debug mode: Enabled');
+
+let config = {}; // Initialize as empty object, will be populated in getInitialConfig
 
 function loadConfig() {
     const storedConfig = localStorage.getItem('postureConfig');
@@ -15,8 +19,21 @@ function loadConfig() {
 
 function saveConfigToStorage() {
     try {
+        console.log('Attempting to save config:', config);
+        
+        // Test localStorage first
+        localStorage.setItem('test', 'test');
+        const test = localStorage.getItem('test');
+        console.log('localStorage test:', test);
+        localStorage.removeItem('test');
+        
         localStorage.setItem('postureConfig', JSON.stringify(config));
         console.log('Configuration saved to storage');
+        
+        // Verify immediately
+        const verification = localStorage.getItem('postureConfig');
+        console.log('Verification - saved data:', verification);
+        console.log('Verification - parsed data:', JSON.parse(verification));
     } catch (e) {
         console.error('Error saving config to storage:', e);
     }
@@ -27,7 +44,6 @@ let lastAlertTime = null;
 const ALERT_THRESHOLD = 10000; // 10 seconds in milliseconds
 const cameraOverlay = document.querySelector('.camera-overlay');
 let alertsEnabled = true;
-const toggleAlertBtn = document.getElementById('toggleAlert');
 
 async function startWebcam() {
     const video = document.getElementById('video');
@@ -82,31 +98,112 @@ function updateUI(data) {
         return;
     }
     
+    // Frontend posture evaluation based on angles and local config
+    const angles = data.angles;
+    let isGood = true;
+    let statusText = '';
+    
+    // Determine if posture is good or bad based on frontend config
+    for (const side in angles) {
+        if (angles[side] > config.maxGoodAngle) {
+            isGood = false;
+            break;
+        }
+    }
+    
+    // Create status message
+    if (isGood) {
+        if (angles.right !== undefined && angles.left !== undefined) {
+            // Both sides visible
+            const avgAngle = (angles.right + angles.left) / 2;
+            if (avgAngle <= 5) {
+                statusText = "Excellent Posture!";
+            } else {
+                statusText = `Good Posture - ${avgAngle.toFixed(1)}° forward`;
+            }
+        } else {
+            // Only one side visible
+            const angle = angles.right || angles.left;
+            if (angle <= 5) {
+                statusText = "Excellent Posture!";
+            } else {
+                statusText = `Good Posture - ${angle.toFixed(1)}° forward`;
+            }
+        }
+    } else {
+        if (angles.right !== undefined && angles.left !== undefined) {
+            const avgAngle = (angles.right + angles.left) / 2;
+            statusText = `Bad Posture - ${avgAngle.toFixed(1)}° forward. Pull your head back!`;
+        } else {
+            const angle = angles.right || angles.left;
+            statusText = `Bad Posture - ${angle.toFixed(1)}° forward. Straighten your neck!`;
+        }
+    }
+    
     // Update status with appropriate styling
-    statusElement.textContent = data.status;
-    statusElement.className = 'status-message ' + (data.is_good ? 'good-posture' : 'bad-posture');
+    statusElement.textContent = statusText;
+    statusElement.className = 'status-message ' + (isGood ? 'good-posture' : 'bad-posture');
     
     // Update video container shadow
     videoContainer.className = 'video-container ' + 
-        (data.is_good ? 'good-posture-shadow' : 'bad-posture-shadow');
+        (isGood ? 'good-posture-shadow' : 'bad-posture-shadow');
 
-    // Display both angles if available
-    let angleText = 'Neck Angles: ';
-    if (data.angles.right !== undefined) {
-        angleText += `Right: ${data.angles.right.toFixed(2)}°`;
+    // Display head forward angles with simple good/bad classification
+    let angleText = 'Head Position: ';
+    
+    if (angles.right !== undefined && angles.left !== undefined) {
+        // Both sides visible - show average and individual
+        const avgAngle = (angles.right + angles.left) / 2;
+        const angleIsGood = avgAngle <= config.maxGoodAngle;
+        
+        if (avgAngle <= 5) {
+            angleText += `Perfect (${avgAngle.toFixed(1)}° forward)`;
+        } else if (angleIsGood) {
+            angleText += `${avgAngle.toFixed(1)}° forward (Good)`;
+        } else {
+            angleText += `${avgAngle.toFixed(1)}° forward (Bad)`;
+        }
+        
+        // Add individual side details
+        angleText += ` | R: ${angles.right.toFixed(1)}°, L: ${angles.left.toFixed(1)}°`;
+    } else if (angles.right !== undefined) {
+        // Only right side visible
+        const angle = angles.right;
+        const angleIsGood = angle <= config.maxGoodAngle;
+        
+        if (angle <= 5) {
+            angleText += `Perfect (${angle.toFixed(1)}° forward)`;
+        } else if (angleIsGood) {
+            angleText += `${angle.toFixed(1)}° forward (Good)`;
+        } else {
+            angleText += `${angle.toFixed(1)}° forward (Bad)`;
+        }
+        angleText += ' (Right side)';
+    } else if (angles.left !== undefined) {
+        // Only left side visible
+        const angle = angles.left;
+        const angleIsGood = angle <= config.maxGoodAngle;
+        
+        if (angle <= 5) {
+            angleText += `Perfect (${angle.toFixed(1)}° forward)`;
+        } else if (angleIsGood) {
+            angleText += `${angle.toFixed(1)}° forward (Good)`;
+        } else {
+            angleText += `${angle.toFixed(1)}° forward (Bad)`;
+        }
+        angleText += ' (Left side)';
     }
-    if (data.angles.left !== undefined) {
-        if (data.angles.right !== undefined) angleText += ' | ';
-        angleText += `Left: ${data.angles.left.toFixed(2)}°`;
-    }
+    
     angleElement.textContent = angleText;
+    angleElement.className = 'metric angle-display';
     
     // Draw pose markers if landmarks are available
     if (data.landmarks) {
         drawPoseMarkers(data.landmarks);
     }
     
-    if (!data.is_good) {
+    // Timer and alert logic
+    if (!isGood) {
         if (!badPostureStartTime) {
             badPostureStartTime = Date.now();
         }
@@ -198,116 +295,221 @@ function drawConnections(ctx, landmarks, width, height) {
     });
 }
 
-document.getElementById('saveConfig').addEventListener('click', () => {
-    const rightMinAngle = parseInt(document.getElementById('rightMinAngle').value);
-    const rightMaxAngle = parseInt(document.getElementById('rightMaxAngle').value);
-    const leftMinAngle = parseInt(document.getElementById('leftMinAngle').value);
-    const leftMaxAngle = parseInt(document.getElementById('leftMaxAngle').value);
-    const alertInterval = parseInt(document.getElementById('alertInterval').value) * 1000;
-
-    if (rightMinAngle >= rightMaxAngle || leftMinAngle >= leftMaxAngle) {
-        alert('Minimum angles must be less than maximum angles');
-        return;
-    }
-
-    if (rightMaxAngle > 0 || rightMinAngle > 0) {
-        alert('Right side angles must be negative');
-        return;
-    }
-
-    if (leftMaxAngle < 0 || leftMinAngle < 0) {
-        alert('Left side angles must be positive');
-        return;
-    }
-
-    config.rightMinAngle = rightMinAngle;
-    config.rightMaxAngle = rightMaxAngle;
-    config.leftMinAngle = leftMinAngle;
-    config.leftMaxAngle = leftMaxAngle;
-    config.alertInterval = alertInterval;
+function getInitialConfig() {
+    console.log('Loading initial config...');
     
-    // Save to local storage
-    saveConfigToStorage();
+    // Load stored config if it exists
+    const storedConfig = loadConfig();
+    console.log('Stored config:', storedConfig);
     
-});
-
-document.getElementById('startBtn').addEventListener('click', async () => {
-    const button = document.getElementById('startBtn');
-    button.disabled = true;
-    button.textContent = 'Starting...';
+    // Use stored config or default values
+    config = storedConfig || {
+        maxGoodAngle: 15,      // Good posture threshold
+        alertInterval: 10000   // Alert interval in milliseconds
+    };
     
-    await startWebcam();
-    setInterval(sendFrame, 1000);
+    console.log('Final config after loading:', config);
     
-    button.textContent = 'Detection Running';
-});
-
-async function getInitialConfig() {
+    // Update input fields with current config (optional - don't fail if elements missing)
     try {
-        const response = await fetch('/api/config');
-        const defaultConfig = await response.json();
+        const maxGoodAngleElement = document.getElementById('maxGoodAngle');
+        const alertIntervalElement = document.getElementById('alertInterval');
         
-        // Load stored config if it exists
-        const storedConfig = loadConfig();
+        console.log('Input elements found:', {
+            maxGoodAngle: !!maxGoodAngleElement,
+            alertInterval: !!alertIntervalElement
+        });
         
-        // Use stored config or default from backend
-        config = storedConfig || {
-            rightMinAngle: defaultConfig.right_min_angle,
-            rightMaxAngle: defaultConfig.right_max_angle,
-            leftMinAngle: defaultConfig.left_min_angle,
-            leftMaxAngle: defaultConfig.left_max_angle,
-            alertInterval: 10000 // Keep alert interval as fixed value or add to backend
-        };
+        if (maxGoodAngleElement) {
+            try {
+                console.log('Setting maxGoodAngle to:', config.maxGoodAngle);
+                maxGoodAngleElement.value = config.maxGoodAngle;
+            } catch (e) {
+                console.warn('Could not set maxGoodAngle value:', e);
+            }
+        } else {
+            console.warn('maxGoodAngle element not found - will retry later');
+        }
         
-        // Update input fields with current config
-        document.getElementById('rightMinAngle').value = config.rightMinAngle;
-        document.getElementById('rightMaxAngle').value = config.rightMaxAngle;
-        document.getElementById('leftMinAngle').value = config.leftMinAngle;
-        document.getElementById('leftMaxAngle').value = config.leftMaxAngle;
-        document.getElementById('alertInterval').value = config.alertInterval / 1000;
-    } catch (error) {
-        console.error('Error fetching initial config:', error);
+        if (alertIntervalElement) {
+            try {
+                console.log('Setting alertInterval to:', config.alertInterval / 1000);
+                alertIntervalElement.value = config.alertInterval / 1000;
+            } catch (e) {
+                console.warn('Could not set alertInterval value:', e);
+            }
+        } else {
+            console.warn('alertInterval element not found - will retry later');
+        }
+    } catch (inputError) {
+        console.warn('Could not update input fields (will retry later):', inputError);
+        console.log('DOM state - document.readyState:', document.readyState);
+        console.log('DOM state - all input elements:', document.querySelectorAll('input').length);
     }
 }
 
-document.addEventListener('DOMContentLoaded', getInitialConfig);
+// Move all DOM-dependent code into DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded');
+    
+    // Debug: Check if key elements exist
+    const saveBtn = document.getElementById('saveConfig');
+    const resetBtn = document.getElementById('resetConfig');
+    const maxGoodAngle = document.getElementById('maxGoodAngle');
+    const alertInterval = document.getElementById('alertInterval');
+    
+    console.log('Elements found:', {
+        saveBtn: !!saveBtn,
+        resetBtn: !!resetBtn,
+        maxGoodAngle: !!maxGoodAngle,
+        alertInterval: !!alertInterval
+    });
+    
+    getInitialConfig();
+    
+    // Small delay to ensure DOM is fully ready, then try to update fields again
+    setTimeout(() => {
+        if (config.maxGoodAngle !== undefined) {
+            const maxGoodAngleElement = document.getElementById('maxGoodAngle');
+            const alertIntervalElement = document.getElementById('alertInterval');
+            
+            if (maxGoodAngleElement && !maxGoodAngleElement.value) {
+                maxGoodAngleElement.value = config.maxGoodAngle;
+                console.log('Delayed update: set maxGoodAngle to', config.maxGoodAngle);
+            }
+            
+            if (alertIntervalElement && !alertIntervalElement.value) {
+                alertIntervalElement.value = config.alertInterval / 1000;
+                console.log('Delayed update: set alertInterval to', config.alertInterval / 1000);
+            }
+        }
+    }, 100);
+    
+    // Save configuration event listener
+    document.getElementById('saveConfig').addEventListener('click', function() {
+        console.log('Save button clicked');
+        
+        // Debug: Check if elements exist
+        var maxGoodAngleElement = document.getElementById('maxGoodAngle');
+        var alertIntervalElement = document.getElementById('alertInterval');
+        
+        console.log('maxGoodAngleElement:', maxGoodAngleElement);
+        console.log('alertIntervalElement:', alertIntervalElement);
+        
+        if (!maxGoodAngleElement) {
+            alert('Error: maxGoodAngle element not found');
+            return;
+        }
+        
+        if (!alertIntervalElement) {
+            alert('Error: alertInterval element not found');
+            return;
+        }
+        
+        var maxGoodAngle = parseInt(maxGoodAngleElement.value);
+        var alertInterval = parseInt(alertIntervalElement.value) * 1000;
 
-// Add a reset button to HTML
-document.getElementById('resetConfig').addEventListener('click', async () => {
-    try {
-        // Get default config from backend
-        const response = await fetch('/api/config');
-        const defaultConfig = await response.json();
+        console.log('maxGoodAngle:', maxGoodAngle);
+        console.log('alertInterval:', alertInterval);
+
+        // Validate input
+        if (maxGoodAngle < 5 || maxGoodAngle > 40) {
+            alert('Posture threshold must be between 5 and 40 degrees');
+            return;
+        }
+
+        if (alertInterval < 1000) {
+            alert('Alert interval must be at least 1 second');
+            return;
+        }
+
+        // Update config with new values
+        config.maxGoodAngle = maxGoodAngle;
+        config.alertInterval = alertInterval;
         
-        // Update config object with default values
-        config = {
-            rightMinAngle: defaultConfig.right_min_angle,
-            rightMaxAngle: defaultConfig.right_max_angle,
-            leftMinAngle: defaultConfig.left_min_angle,
-            leftMaxAngle: defaultConfig.left_max_angle,
-            alertInterval: 10000
-        };
+        console.log('Config before saving:', config);
         
-        // Update UI
-        document.getElementById('rightMinAngle').value = config.rightMinAngle;
-        document.getElementById('rightMaxAngle').value = config.rightMaxAngle;
-        document.getElementById('leftMinAngle').value = config.leftMinAngle;
-        document.getElementById('leftMaxAngle').value = config.leftMaxAngle;
-        document.getElementById('alertInterval').value = config.alertInterval / 1000;
+        // Save to local storage
+        saveConfigToStorage();
         
-        // Clear stored config
-        localStorage.removeItem('postureConfig');
+        // Verify it was saved
+        var savedConfig = localStorage.getItem('postureConfig');
+        console.log('Saved config in localStorage:', savedConfig);
         
-        console.log('Reset to default configuration');
-    } catch (error) {
-        console.error('Error resetting configuration:', error);
-    }
+        console.log('Configuration updated:', config);
+        alert('Settings saved successfully!');
+    });
+
+    // Start button event listener
+    document.getElementById('startBtn').addEventListener('click', async () => {
+        const button = document.getElementById('startBtn');
+        button.disabled = true;
+        button.textContent = 'Starting...';
+        
+        try {
+            await startWebcam();
+            setInterval(sendFrame, 1000); // Send frame every second
+            button.textContent = 'Detection Active';
+        } catch (error) {
+            console.error('Error starting detection:', error);
+            button.disabled = false;
+            button.textContent = 'Start Detection';
+        }
+    });
+
+    // Reset configuration event listener
+    document.getElementById('resetConfig').addEventListener('click', () => {
+        try {
+            // Reset to default configuration values
+            config = {
+                maxGoodAngle: 15,      // Good posture threshold
+                alertInterval: 10000   // Alert interval in milliseconds
+            };
+            
+            // Update UI
+            const maxGoodAngleElement = document.getElementById('maxGoodAngle');
+            const alertIntervalElement = document.getElementById('alertInterval');
+            
+            if (maxGoodAngleElement) {
+                maxGoodAngleElement.value = config.maxGoodAngle;
+            }
+            if (alertIntervalElement) {
+                alertIntervalElement.value = config.alertInterval / 1000;
+            }
+            
+            // Clear stored config
+            localStorage.removeItem('postureConfig');
+            
+            console.log('Reset to default configuration');
+            alert('Settings reset to default values!');
+        } catch (error) {
+            console.error('Error resetting configuration:', error);
+        }
+    });
+
+    // Toggle alert event listener
+    const toggleAlertBtn = document.getElementById('toggleAlert');
+    toggleAlertBtn.addEventListener('click', () => {
+        alertsEnabled = !alertsEnabled;
+        if (alertsEnabled) {
+            toggleAlertBtn.innerHTML = '<span class="alert-icon">🔔</span> Alerts Enabled';
+            toggleAlertBtn.classList.remove('disabled');
+        } else {
+            toggleAlertBtn.innerHTML = '<span class="alert-icon">🔕</span> Alerts Disabled';
+            toggleAlertBtn.classList.add('disabled');
+        }
+    });
 });
 
-toggleAlertBtn.addEventListener('click', () => {
-    alertsEnabled = !alertsEnabled;
-    toggleAlertBtn.classList.toggle('disabled');
-    toggleAlertBtn.innerHTML = alertsEnabled ? 
-        '<span class="alert-icon">🔔</span> Alerts Enabled' : 
-        '<span class="alert-icon">🔕</span> Alerts Disabled';
-}); 
+// Immediate test when script loads
+console.log('📋 Script execution complete');
+console.log('📄 Document ready state:', document.readyState);
+console.log('🌐 Location:', window.location.href);
+
+// Test if we can access basic DOM elements
+setTimeout(() => {
+    console.log('⏰ Delayed DOM test (after 500ms):');
+    console.log('🎯 Save button exists:', !!document.getElementById('saveConfig'));
+    console.log('🎯 Input field exists:', !!document.getElementById('maxGoodAngle'));
+    console.log('📊 Total input elements:', document.querySelectorAll('input').length);
+}, 500); 
