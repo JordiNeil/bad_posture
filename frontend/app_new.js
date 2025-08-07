@@ -5,6 +5,7 @@ console.log('🔧 Debug mode: Enabled - Client-side MediaPipe processing');
 let config = {}; // Initialize as empty object, will be populated in getInitialConfig
 let pose = null; // MediaPipe Pose instance
 let camera = null; // MediaPipe Camera instance
+let selectedCameraDeviceId = null; // Selected webcam deviceId
 
 function loadConfig() {
     const storedConfig = localStorage.getItem('postureConfig');
@@ -383,6 +384,7 @@ let currentStream = null;
 let processingInterval = null;
 let processingSpeed = 200; // Default: medium speed (200ms)
 let useRealTimeProcessing = false;
+let rafId = null; // requestAnimationFrame id for real-time loop
 
 // MediaPipe setup
 async function initializeMediaPipe() {
@@ -531,18 +533,60 @@ function calculateNeckAngles(landmarks) {
     return angles;
 }
 
+async function enumerateCameras() {
+    try {
+        // Ensure we have permission to get device labels if no active stream
+        if (!currentStream) {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(t => t.stop());
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+
+        const select = document.getElementById('cameraSelect');
+        if (!select) return;
+        // Clear current options except placeholder
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select a camera';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+
+        videoInputs.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.textContent = device.label || `Camera (${device.deviceId.substring(0, 6)})`;
+            select.appendChild(option);
+        });
+
+        console.log('🎥 Cameras loaded:', videoInputs.map(v => v.label || v.deviceId));
+    } catch (err) {
+        console.error('Failed to enumerate cameras:', err);
+        alert('Unable to list cameras. Ensure camera permission is granted.');
+    }
+}
+
 async function startWebcam() {
     const video = document.getElementById('video');
     try {
         console.log('📹 Starting webcam...');
         
-        // Request webcam with specific constraints for better performance
+        // Stop existing stream if switching cameras
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        // Build constraints: prefer selected device if available
+        let videoConstraints = { frameRate: { ideal: 15 } };
+        if (selectedCameraDeviceId) {
+            videoConstraints.deviceId = { exact: selectedCameraDeviceId };
+        }
+
         currentStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                frameRate: { ideal: 15, max: 30 }
-            } 
+            video: videoConstraints
         });
         
         video.srcObject = currentStream;
@@ -555,24 +599,17 @@ async function startWebcam() {
             });
             
             cameraOverlay.classList.add('hidden');
-            
-            // Initialize camera for MediaPipe
-            camera = new Camera(video, {
-                onFrame: async () => {
-                    // This will be overridden by startProcessing() if not using real-time
-                    if (pose && isDetectionActive && useRealTimeProcessing) {
-                        await pose.send({ image: video });
-                    }
-                },
-                width: video.videoWidth,
-                height: video.videoHeight
-            });
-            
-            await camera.start();
+
+            // Mark detection active and start our own processing loop
             isDetectionActive = true;
-            
-            // Start processing with configurable speed
             startProcessing();
+
+            // Auto-populate camera selector now that permission has been granted
+            try {
+                await enumerateCameras();
+            } catch (e) {
+                console.warn('Could not auto-enumerate cameras after permission:', e);
+            }
             
             console.log('📹 Camera started successfully');
         };
@@ -609,15 +646,19 @@ function stopDetection() {
     currentSessionStartTime = null;
     dailyPostureStats.lastActiveTimestamp = null;
     
-    // Stop processing interval
+    // Stop processing interval/raf
     if (processingInterval) {
         clearInterval(processingInterval);
         processingInterval = null;
     }
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
     
-    // Stop camera
+    // Stop MediaPipe Camera if it was ever started (we now avoid using it)
     if (camera) {
-        camera.stop();
+        try { camera.stop(); } catch (_) {}
         camera = null;
     }
     
@@ -947,29 +988,47 @@ function updateProcessingSpeed(speedSetting) {
             clearInterval(processingInterval);
             processingInterval = null;
         }
+        if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
         startProcessing();
     }
 }
 
 function startProcessing() {
+    // Ensure any previous loops are stopped
+    if (processingInterval) {
+        clearInterval(processingInterval);
+        processingInterval = null;
+    }
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+
+    const video = document.getElementById('video');
+    if (!video) return;
+
     if (useRealTimeProcessing) {
-        // Use original MediaPipe real-time processing - onFrame is already set in camera initialization
-        console.log('⏱️ Real-time processing enabled (original MediaPipe speed ~15-30 FPS)');
-    } else {
-        // Use interval-based processing
-        if (processingInterval) {
-            clearInterval(processingInterval);
-        }
-        
-        processingInterval = setInterval(() => {
-            if (pose && isDetectionActive) {
-                const video = document.getElementById('video');
-                if (video && video.readyState === 4) { // Video is ready
-                    pose.send({ image: video });
+        const loop = async () => {
+            if (pose && isDetectionActive && video.readyState === 4) {
+                try {
+                    await pose.send({ image: video });
+                } catch (e) {
+                    console.error('pose.send error in RAF loop:', e);
                 }
             }
+            rafId = requestAnimationFrame(loop);
+        };
+        rafId = requestAnimationFrame(loop);
+        console.log('⏱️ Real-time processing enabled via requestAnimationFrame');
+    } else {
+        processingInterval = setInterval(() => {
+            if (pose && isDetectionActive && video.readyState === 4) {
+                pose.send({ image: video }).catch(e => console.error('pose.send error in interval loop:', e));
+            }
         }, processingSpeed);
-        
         console.log('⏱️ Processing interval started at', processingSpeed + 'ms');
     }
 }
@@ -1102,11 +1161,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('startBtn').addEventListener('click', async () => {
         const startButton = document.getElementById('startBtn');
         const stopButton = document.getElementById('stopBtn');
+        const cameraSelect = document.getElementById('cameraSelect');
         
         startButton.disabled = true;
         startButton.textContent = 'Starting...';
         
         try {
+            // Capture selected device before starting
+            if (cameraSelect && cameraSelect.value) {
+                selectedCameraDeviceId = cameraSelect.value;
+            }
             await startWebcam();
             startButton.classList.add('hidden');
             stopButton.classList.remove('hidden');
@@ -1206,6 +1270,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             hideHistoryModal();
         }
     });
+    // Load camera list button
+    const loadCamerasBtn = document.getElementById('loadCameras');
+    if (loadCamerasBtn) {
+        loadCamerasBtn.addEventListener('click', async () => {
+            await enumerateCameras();
+        });
+    }
+
+    // Update selected camera when user changes selection
+    const cameraSelect = document.getElementById('cameraSelect');
+    if (cameraSelect) {
+        cameraSelect.addEventListener('change', (e) => {
+            selectedCameraDeviceId = e.target.value || null;
+        });
+    }
 });
 
 // Immediate test when script loads

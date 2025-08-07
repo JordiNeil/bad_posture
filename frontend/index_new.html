@@ -64,6 +64,18 @@
                                 <small>Faster processing uses more CPU and battery</small>
                             </label>
                         </div>
+                        <div class="config-group">
+                            <label>
+                                Camera:
+                                <div class="camera-inputs">
+                                    <select id="cameraSelect" class="speed-selector">
+                                        <option value="" disabled selected>Select a camera</option>
+                                    </select>
+                                    <button id="loadCameras" class="config-button icon" title="Refresh cameras" aria-label="Refresh cameras">↻</button>
+                                </div>
+                                <small>Click "Load Cameras" and grant permission to show device names</small>
+                            </label>
+                        </div>
                         <div class="button-group">
                             <button id="saveConfig" class="config-button">Save Settings</button>
                             <button id="resetConfig" class="config-button secondary">Reset to Default</button>

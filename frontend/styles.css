@@ -310,6 +310,17 @@ footer a:hover {
     font-weight: 500;
 }
 
+.camera-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+#cameraSelect.speed-selector {
+    flex: 1;
+}
+
 .config-container input[type="number"] {
     width: 70px;
     padding: 0.6rem;
@@ -337,10 +348,22 @@ footer a:hover {
     transition: all 0.3s ease;
 }
 
+/* Compact icon-style config button */
+.config-button.icon {
+    padding: 0.45rem 0.6rem;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+}
+
 .config-button:hover {
-    background: linear-gradient(145deg, var(--gradient-end), var(--gradient-start));
+    background: linear-gradient(145deg, #16a34a, #22c55e);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.2);
 }
 
 .layout-container {
