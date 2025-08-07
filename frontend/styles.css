@@ -368,6 +368,21 @@ footer a:hover {
     gap: 1rem;
 }
 
+.status-sidebar {
+    flex: 0 0 300px;
+    min-height: 500px;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+}
+
 .video-container {
     flex: 1;
     margin: 0;
@@ -380,7 +395,22 @@ footer a:hover {
 
 .status-container {
     width: 100%;
-    margin-bottom: 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.status-container .status-message {
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.status-container .metric {
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
 }
 
 @media (max-width: 1024px) {
@@ -669,6 +699,35 @@ footer a:hover {
     margin-top: 1rem;
 }
 
+.video-stats {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+.video-stats .metric {
+    margin: 0.5rem 0;
+    text-align: center;
+}
+
+.video-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.video-actions .alert-button,
+.video-actions .history-button {
+    flex: 0 1 auto;
+    min-width: 140px;
+}
+
 .stop-button {
     background: linear-gradient(145deg, #ef4444, #dc2626);
     color: white;
@@ -694,4 +753,30 @@ footer a:hover {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* Speed selector styling */
+.speed-selector {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #4A5568;
+    border-radius: 6px;
+    background: #2D3748;
+    color: #E2E8F0;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.speed-selector:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.speed-selector option {
+    background: #2D3748;
+    color: #E2E8F0;
+    padding: 0.5rem;
 } 

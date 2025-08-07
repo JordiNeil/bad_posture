@@ -54,24 +54,20 @@
                                 </div>
                             </label>
                         </div>
+                        <div class="config-group">
+                            <label>
+                                Processing Speed:
+                                <select id="processingSpeed" class="speed-selector">
+                                    <option value="fast">Fast (Real-time) - Original speed</option>
+                                    <option value="medium" selected>Medium (Every 200ms) - Balanced</option>
+                                    <option value="slow">Slow (Every 500ms) - Battery saver</option>
+                                </select>
+                                <small>Faster processing uses more CPU and battery</small>
+                            </label>
+                        </div>
                         <div class="button-group">
                             <button id="saveConfig" class="config-button">Save Settings</button>
                             <button id="resetConfig" class="config-button secondary">Reset to Default</button>
-                        </div>
-                    </div>
-
-                    <div class="status-container">
-                        <div id="status" class="status-message">Status: Waiting...</div>
-                        <p id="angle" class="metric">Head Position: --</p>
-                        <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
-                        <p id="dailyStats" class="metric daily-stats">Today: 0s (0 sessions)</p>
-                        <div class="button-group">
-                            <button id="toggleAlert" class="alert-button">
-                                <span class="alert-icon">🔔</span> Alerts Enabled
-                            </button>
-                            <button id="showHistory" class="history-button">
-                                📚 View History
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -88,6 +84,26 @@
                     <div class="detection-controls">
                         <button id="startBtn" class="start-button">Start Detection</button>
                         <button id="stopBtn" class="stop-button hidden">Stop Detection</button>
+                    </div>
+                    
+                    <div class="video-stats">
+                        <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
+                        <p id="dailyStats" class="metric daily-stats">Today: 0s (0 sessions)</p>
+                        <div class="video-actions">
+                            <button id="toggleAlert" class="alert-button">
+                                <span class="alert-icon">🔔</span> Alerts Enabled
+                            </button>
+                            <button id="showHistory" class="history-button">
+                                📚 View History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-sidebar">
+                    <div class="status-container">
+                        <div id="status" class="status-message">Status: Waiting...</div>
+                        <p id="angle" class="metric">Head Position: --</p>
                     </div>
                 </div>
             </div>

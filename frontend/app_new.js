@@ -380,6 +380,9 @@ let currentSessionStartTime = null;
 let appStartTime = null;
 let isDetectionActive = false;
 let currentStream = null;
+let processingInterval = null;
+let processingSpeed = 200; // Default: medium speed (200ms)
+let useRealTimeProcessing = false;
 
 // MediaPipe setup
 async function initializeMediaPipe() {
@@ -556,7 +559,8 @@ async function startWebcam() {
             // Initialize camera for MediaPipe
             camera = new Camera(video, {
                 onFrame: async () => {
-                    if (pose && isDetectionActive) {
+                    // This will be overridden by startProcessing() if not using real-time
+                    if (pose && isDetectionActive && useRealTimeProcessing) {
                         await pose.send({ image: video });
                     }
                 },
@@ -566,6 +570,10 @@ async function startWebcam() {
             
             await camera.start();
             isDetectionActive = true;
+            
+            // Start processing with configurable speed
+            startProcessing();
+            
             console.log('📹 Camera started successfully');
         };
     } catch (error) {
@@ -600,6 +608,12 @@ function stopDetection() {
     badPostureStartTime = null;
     currentSessionStartTime = null;
     dailyPostureStats.lastActiveTimestamp = null;
+    
+    // Stop processing interval
+    if (processingInterval) {
+        clearInterval(processingInterval);
+        processingInterval = null;
+    }
     
     // Stop camera
     if (camera) {
@@ -866,7 +880,8 @@ function getInitialConfig() {
     // Use stored config or default values
     config = storedConfig || {
         maxGoodAngle: 25,      // Good posture threshold
-        alertInterval: 10000   // Alert interval in milliseconds
+        alertInterval: 10000,  // Alert interval in milliseconds
+        processingSpeed: 'medium' // Processing speed setting
     };
     
     console.log('Final config after loading:', config);
@@ -877,10 +892,12 @@ function updateConfigInputs() {
     try {
         const maxGoodAngleElement = document.getElementById('maxGoodAngle');
         const alertIntervalElement = document.getElementById('alertInterval');
+        const processingSpeedElement = document.getElementById('processingSpeed');
         
         console.log('Input elements found:', {
             maxGoodAngle: !!maxGoodAngleElement,
-            alertInterval: !!alertIntervalElement
+            alertInterval: !!alertIntervalElement,
+            processingSpeed: !!processingSpeedElement
         });
         
         if (maxGoodAngleElement) {
@@ -896,8 +913,65 @@ function updateConfigInputs() {
         } else {
             console.warn('alertInterval element not found');
         }
+        
+        if (processingSpeedElement) {
+            console.log('Setting processingSpeed to:', config.processingSpeed);
+            processingSpeedElement.value = config.processingSpeed || 'medium';
+            updateProcessingSpeed(config.processingSpeed || 'medium');
+        } else {
+            console.warn('processingSpeed element not found');
+        }
     } catch (inputError) {
         console.warn('Could not update input fields:', inputError);
+    }
+}
+
+function updateProcessingSpeed(speedSetting) {
+    const speedMap = {
+        'fast': 'realtime',
+        'medium': 200,
+        'slow': 500
+    };
+    
+    if (speedSetting === 'fast') {
+        useRealTimeProcessing = true;
+        console.log('🚀 Processing speed updated: Real-time (original MediaPipe speed)');
+    } else {
+        useRealTimeProcessing = false;
+        processingSpeed = speedMap[speedSetting] || 200;
+        console.log('🚀 Processing speed updated:', speedSetting, '(' + processingSpeed + 'ms)');
+    }
+    
+    // If detection is active, restart the processing
+    if (isDetectionActive) {
+        if (processingInterval) {
+            clearInterval(processingInterval);
+            processingInterval = null;
+        }
+        startProcessing();
+    }
+}
+
+function startProcessing() {
+    if (useRealTimeProcessing) {
+        // Use original MediaPipe real-time processing - onFrame is already set in camera initialization
+        console.log('⏱️ Real-time processing enabled (original MediaPipe speed ~15-30 FPS)');
+    } else {
+        // Use interval-based processing
+        if (processingInterval) {
+            clearInterval(processingInterval);
+        }
+        
+        processingInterval = setInterval(() => {
+            if (pose && isDetectionActive) {
+                const video = document.getElementById('video');
+                if (video && video.readyState === 4) { // Video is ready
+                    pose.send({ image: video });
+                }
+            }
+        }, processingSpeed);
+        
+        console.log('⏱️ Processing interval started at', processingSpeed + 'ms');
     }
 }
 
@@ -947,6 +1021,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alertIntervalElement.value = config.alertInterval / 1000;
                 console.log('Delayed update: set alertInterval to', config.alertInterval / 1000);
             }
+            
+            const processingSpeedElement = document.getElementById('processingSpeed');
+            if (processingSpeedElement && !processingSpeedElement.value) {
+                processingSpeedElement.value = config.processingSpeed || 'medium';
+                updateProcessingSpeed(config.processingSpeed || 'medium');
+                console.log('Delayed update: set processingSpeed to', config.processingSpeed || 'medium');
+            }
         }
     }, 100);
     
@@ -971,11 +1052,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
+        var processingSpeedElement = document.getElementById('processingSpeed');
+        
+        if (!processingSpeedElement) {
+            alert('Error: processingSpeed element not found');
+            return;
+        }
+        
         var maxGoodAngle = parseInt(maxGoodAngleElement.value);
         var alertInterval = parseInt(alertIntervalElement.value) * 1000;
+        var processingSpeedValue = processingSpeedElement.value;
 
         console.log('maxGoodAngle:', maxGoodAngle);
         console.log('alertInterval:', alertInterval);
+        console.log('processingSpeed:', processingSpeedValue);
 
         // Validate input
         if (maxGoodAngle < 5 || maxGoodAngle > 40) {
@@ -991,6 +1081,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update config with new values
         config.maxGoodAngle = maxGoodAngle;
         config.alertInterval = alertInterval;
+        config.processingSpeed = processingSpeedValue;
+        
+        // Apply processing speed change immediately
+        updateProcessingSpeed(processingSpeedValue);
         
         console.log('Config before saving:', config);
         
@@ -1047,18 +1141,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Reset to default configuration values
             config = {
                 maxGoodAngle: 25,      // Good posture threshold
-                alertInterval: 10000   // Alert interval in milliseconds
+                alertInterval: 10000,  // Alert interval in milliseconds
+                processingSpeed: 'medium' // Processing speed setting
             };
             
             // Update UI
             const maxGoodAngleElement = document.getElementById('maxGoodAngle');
             const alertIntervalElement = document.getElementById('alertInterval');
+            const processingSpeedElement = document.getElementById('processingSpeed');
             
             if (maxGoodAngleElement) {
                 maxGoodAngleElement.value = config.maxGoodAngle;
             }
             if (alertIntervalElement) {
                 alertIntervalElement.value = config.alertInterval / 1000;
+            }
+            if (processingSpeedElement) {
+                processingSpeedElement.value = config.processingSpeed;
+                updateProcessingSpeed(config.processingSpeed);
             }
             
             // Clear stored config
