@@ -120,15 +120,7 @@ video, canvas {
     display: none;
 }
 
-.status-container {
-    width: 100%;
-    max-width: 800px;
-    padding: 1.5rem;
-    background-color: var(--card-background);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    background: linear-gradient(145deg, #ffffff, #f5f5f5);
-}
+
 
 .status-message {
     font-size: 1.5rem;
@@ -273,9 +265,7 @@ footer a:hover {
         aspect-ratio: 3/4;
     }
 
-    .status-container {
-        padding: 1rem;
-    }
+
 }
 
 .config-container {
@@ -359,6 +349,7 @@ footer a:hover {
     width: 100%;
     max-width: 1200px;
     align-items: flex-start;
+    justify-content: center;
 }
 
 .controls-sidebar {
@@ -370,17 +361,9 @@ footer a:hover {
 
 .status-sidebar {
     flex: 0 0 300px;
-    min-height: 500px;
-    max-height: 500px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    overflow-y: auto;
 }
 
 .video-container {
@@ -395,19 +378,27 @@ footer a:hover {
 
 .status-container {
     width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    max-width: 800px;
+    padding: 1.5rem;
+    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
 }
 
-.status-container .status-message {
+.status-container h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.status-sidebar .status-message {
     min-height: 2.5rem;
     display: flex;
     align-items: center;
 }
 
-.status-container .metric {
+.status-sidebar .metric {
     min-height: 2rem;
     display: flex;
     align-items: center;
@@ -418,7 +409,8 @@ footer a:hover {
         flex-direction: column-reverse;
     }
 
-    .controls-sidebar {
+    .controls-sidebar,
+    .status-sidebar {
         flex: none;
         width: 100%;
         max-width: 800px;
@@ -477,7 +469,8 @@ footer a:hover {
         flex-direction: column-reverse;
     }
 
-    .controls-sidebar {
+    .controls-sidebar,
+    .status-sidebar {
         flex: none;
         width: 100%;
         max-width: 800px;
@@ -536,7 +529,7 @@ footer a:hover {
 
 /* History button styling */
 .history-button {
-    background: linear-gradient(145deg, #6366f1, #4f46e5);
+    background: linear-gradient(145deg, var(--gradient-start), var(--gradient-end));
     color: white;
     border: none;
     border-radius: 8px;
@@ -550,9 +543,9 @@ footer a:hover {
 }
 
 .history-button:hover {
-    background: linear-gradient(145deg, #4f46e5, #3730a3);
+    background: linear-gradient(145deg, var(--gradient-end), var(--gradient-start));
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
 }
 
 /* Modal styling */
@@ -706,27 +699,72 @@ footer a:hover {
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    text-align: center;
-}
-
-.video-stats .metric {
-    margin: 0.5rem 0;
-    text-align: center;
-}
-
-.video-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 1rem;
-    justify-content: center;
-    margin-top: 1rem;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-items: center;
 }
 
-.video-actions .alert-button,
-.video-actions .history-button {
-    flex: 0 1 auto;
-    min-width: 140px;
+/* Unified styling for video-stats elements */
+.video-stats .metric,
+.video-stats .alert-button,
+.video-stats .history-button {
+    margin: 0 !important;
+    padding: 0.75rem 1rem !important;
+    text-align: center;
+    justify-self: center;
+    align-self: center;
+    border-radius: 8px !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    height: 50px !important;
+    min-width: 140px !important;
+    max-width: 180px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+    border: none !important;
 }
+
+/* Specific background colors to maintain distinction */
+.video-stats .metric {
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef) !important;
+    color: var(--text-color) !important;
+    border-left: 4px solid var(--primary-color) !important;
+}
+
+.video-stats .alert-button {
+    background: linear-gradient(145deg, #ffffff, #f5f5f5) !important;
+    color: var(--text-color) !important;
+}
+
+.video-stats .alert-button.disabled {
+    background: linear-gradient(145deg, #f5f5f5, #e0e0e0) !important;
+    color: #666 !important;
+}
+
+.video-stats .history-button {
+    background: linear-gradient(145deg, var(--gradient-start), var(--gradient-end)) !important;
+    color: white !important;
+}
+
+/* Hover effects */
+.video-stats .alert-button:hover,
+.video-stats .history-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.video-stats .history-button:hover {
+    background: linear-gradient(145deg, var(--gradient-end), var(--gradient-start)) !important;
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2) !important;
+}
+
+
 
 .stop-button {
     background: linear-gradient(145deg, #ef4444, #dc2626);

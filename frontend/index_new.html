@@ -19,8 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5024362130270153"
-     crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5024362130270153" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="background-pattern"></div>
@@ -87,23 +86,22 @@
                     </div>
                     
                     <div class="video-stats">
-                        <p id="timer" class="metric hidden">Bad Posture Time: 0s</p>
-                        <p id="dailyStats" class="metric daily-stats">Today: 0s (0 sessions)</p>
-                        <div class="video-actions">
-                            <button id="toggleAlert" class="alert-button">
-                                <span class="alert-icon">🔔</span> Alerts Enabled
-                            </button>
-                            <button id="showHistory" class="history-button">
-                                📚 View History
-                            </button>
-                        </div>
+                        <p id="timer" class="metric">Bad Posture Time: 0s</p>
+                        <button id="toggleAlert" class="alert-button">
+                            <span class="alert-icon">🔔</span> Alerts Enabled
+                        </button>
+                        <button id="showHistory" class="history-button">
+                            📚 View History
+                        </button>
                     </div>
                 </div>
 
                 <div class="status-sidebar">
                     <div class="status-container">
+                        <h2>Status</h2>
                         <div id="status" class="status-message">Status: Waiting...</div>
                         <p id="angle" class="metric">Head Position: --</p>
+                        <p id="dailyStats" class="metric daily-stats">Today: 0s (0 sessions)</p>
                     </div>
                 </div>
             </div>

@@ -779,7 +779,6 @@ function updateUI(data) {
         
         const duration = Math.floor((Date.now() - badPostureStartTime) / 1000);
         timerElement.textContent = `Bad Posture Time: ${duration}s`;
-        timerElement.classList.remove('hidden');
         
         if (duration >= config.alertInterval / 1000) {
             if (!lastAlertTime || (Date.now() - lastAlertTime) >= config.alertInterval) {
@@ -806,7 +805,7 @@ function updateUI(data) {
         
         badPostureStartTime = null;
         currentSessionStartTime = null;
-        timerElement.classList.add('hidden');
+        timerElement.textContent = 'Bad Posture Time: 0s';
     }
 }
 
