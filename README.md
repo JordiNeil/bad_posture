@@ -2,6 +2,10 @@
 
 A real-time posture detection system using computer vision to help maintain good sitting posture and prevent neck strain.
 
+### Use the new version here: [bad-posture](https://bad-posture.com)
+
+![bad_posture](https://github.com/user-attachments/assets/56748824-7ac7-499c-8807-d47bb7fd78c4)
+
 ## Features
 
 - Real-time posture detection using webcam
